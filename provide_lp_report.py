@@ -5,10 +5,13 @@ import pytz
 from launchpadlib.launchpad import Launchpad
 
 # we use this list for weekly status reports:
+"""
 engineers = ['tnurlygayanov', 'akuznetsova', 'ylobankov', 'vrovachev',
              'esikachev', 'vgusev', 'svasheka', 'ogubanov', 'obutenko',
              'kkuznetsova', 'kromanenko', 'vryzhenkin', 'agalkin']
+"""
 # we use this list for 3 months status reports:
+"""
 engineers = ['agalkin', 'akurenyshev', 'akuznetsova', 'apalkina',
              'asledzinskiy', 'apanchenko-8', 'ddmitriev', 'dtyzhnenko',
              'ykotko', 'esikachev', 'ivovk', 'kkuznetsova', 'kromanenko',
@@ -16,15 +19,47 @@ engineers = ['agalkin', 'akurenyshev', 'akuznetsova', 'apalkina',
              'svasheka', 'tdubyk', 'tatyana-leontovich', 'tnurlygayanov',
              'vrovachev', 'vgorin', 'vryzhenkin', 'vgusev', 'vkhlyunev',
              'ylobankov', 'ishamrai']
+"""
+# we use this list for QA weeks report
+engineers = ['imarnat', 'patrick-michel-petit', 'alashai8', 'dhata',
+             'gokrokvertskhov', 'aadamov', 'aignatov', 'hnarkaytis',
+             'mzawadzki-f', 'rpodolyaka', 'ruhe', 'serge-kovaleff',
+             'vsedelnik', 'astsmtl', 'asilenkov', 'mzlatkova', 'ologvinova',
+             'ogusarenko', 'enikanorov', 'obondarev', 'aepifanov', 'shakhat',
+             'kkuznetsova', 'skolekonov', 'akamyshnikova', 'eezhova',
+             'sbelous', 'msdubov', 'oanufriev', 'eyerediskin', 'afrolov',
+             'velovec', 'agalkin', 'aarefiev', 'dtrishkin', 'ddovbii',
+             'esikachev', 'mivanov', 'prazumovsky', 'rvasilets',
+             'tlashchova', 'vdrok', 'vokhrimenko', 'akaszuba', 'teselkin-d',
+             'akurilin', 'ekudryashova', 'iudovichenko', 'mhorban', 'ogubanov',
+             'pkholkin', 'snikitin', 'tdurakov', 'dbelova', 'iyozhikov',
+             'rakhmerov', 'skraynev', 'slukjanov', 'smelikyan',
+             'tnurlygayanov', 'ativelkov', 'dmitrymex', 'ivasilevskaya',
+             'mfedosin', 'nprivalova', 'aevseev-h', 'ityaptin', 'listomin',
+             'sgalkin', 'vefimova', 'degorenko', 'iberezovskiy', 'nmakhotkin',
+             'kkushaev', 'aripinen', 'apavlov-n', 'nkonovalov',
+             'starodubcevna', 'sreshetniak', 'vgridnev', 'efedorova',
+             'kzaitsev', 'slagun', 'vrovachev', 'akuznetsova', 'vryzhenkin',
+             'ylobankov', 'vgusev', 'dukhlov', 'dsavenkov', 'ikhudoshyn',
+             'pshchelo', 'alexei-kornienko', 'idegtiarov', 'amakarov', 'i159',
+             'e0ne', 'svasheka', 'tsufiev-x', 'myatsenko', 'vsaienko',
+             'vsergeyev', 'yzveryanskyy', 'bbobrov', 'ozamiatin', 'ynesenenko',
+             'kromanenko', 'obutenko', 'pkarikh', 'okyrylchuk', 'ochuprykov',
+             'aermolov', 'anevenchannyy', 'akhivin', 'dmeltsaykin', 'alazarev',
+             'asalkeld', 'scollins', 'simon-pasquier', 'swann-w']
 
 raiting = []
 
 cachedir = "~/.launchpadlib/cache/"
 launchpad = Launchpad.login_anonymously('just testing', 'production', cachedir)
 
-one_week_ago_date = datetime.datetime.now() - datetime.timedelta(weeks=12)
+one_week_ago_date = datetime.datetime.now() - datetime.timedelta(weeks=2)
 
 created_on_this_week_total = 0
+count_of_fixed_total = 0
+count_of_high_and_critical_total = 0
+in_progress_or_confirmed_total = 0
+
 line = "-" * 137
 
 for engineer in engineers:
@@ -82,14 +117,18 @@ for engineer in engineers:
             if bug.status not in ["Incomplete", "Invalid", "Won't Fix",
                                   "Opinion", "Expired"]:
                 bug_score = 1
+                if bug.status == "In Progress" or bug.status == "Confirmed":
+                    in_progress_or_confirmed_total += 1
                 if bug.importance in ["High", "Critical"]:
                     bug_score = 2 * bug_score
+                    count_of_high_and_critical_total += 1
                 if bug.status == "In Progress":
                     bug_score = 2 * bug_score
                     count_of_in_progress += 1
                 if bug.status in ["Fix Committed", "Fix Released"]:
                     bug_score = 3 * bug_score
                     count_of_fixed += 1
+                    count_of_fixed_total += 1
                 # if engineer fixed this bug:
                 if bug.assignee is not None and bug.assignee.name == engineer:
                     bug_score = 2 * bug_score
@@ -109,6 +148,11 @@ for engineer in engineers:
 
 s = "\n\nTotal bugs found during the last week by MOS QA team:"
 print s, created_on_this_week_total
+
+print "Critical And High total:", count_of_high_and_critical_total
+print "Fixed (from the list of new bugs) total:", count_of_fixed_total
+s = "Bugs in 'Confirmed' or 'In Progress' state, total:"
+print s, in_progress_or_confirmed_total
 
 line = "-" * 73
 print "\n\n\nRaiting:"

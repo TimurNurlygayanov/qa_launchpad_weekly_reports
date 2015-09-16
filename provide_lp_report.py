@@ -5,11 +5,10 @@ import pytz
 from launchpadlib.launchpad import Launchpad
 
 # we use this list for weekly status reports:
-"""
 engineers = ['tnurlygayanov', 'akuznetsova', 'ylobankov', 'vrovachev',
              'esikachev', 'vgusev', 'svasheka', 'ogubanov', 'obutenko',
              'kkuznetsova', 'kromanenko', 'vryzhenkin', 'agalkin']
-"""
+
 # we use this list for 3 months status reports:
 """
 engineers = ['agalkin', 'akurenyshev', 'akuznetsova', 'apalkina',
@@ -21,6 +20,7 @@ engineers = ['agalkin', 'akurenyshev', 'akuznetsova', 'apalkina',
              'ylobankov', 'ishamrai']
 """
 # we use this list for QA weeks report
+"""
 engineers = ['imarnat', 'patrick-michel-petit', 'alashai8', 'dhata',
              'gokrokvertskhov', 'aadamov', 'aignatov', 'hnarkaytis',
              'mzawadzki-f', 'rpodolyaka', 'ruhe', 'serge-kovaleff',
@@ -47,13 +47,14 @@ engineers = ['imarnat', 'patrick-michel-petit', 'alashai8', 'dhata',
              'kromanenko', 'obutenko', 'pkarikh', 'okyrylchuk', 'ochuprykov',
              'aermolov', 'anevenchannyy', 'akhivin', 'dmeltsaykin', 'alazarev',
              'asalkeld', 'scollins', 'simon-pasquier', 'swann-w']
+"""
 
 raiting = []
 
 cachedir = "~/.launchpadlib/cache/"
 launchpad = Launchpad.login_anonymously('just testing', 'production', cachedir)
 
-one_week_ago_date = datetime.datetime.now() - datetime.timedelta(weeks=2)
+one_week_ago_date = datetime.datetime.now() - datetime.timedelta(weeks=1)
 
 created_on_this_week_total = 0
 count_of_fixed_total = 0

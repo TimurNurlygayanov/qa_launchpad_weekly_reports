@@ -8,15 +8,24 @@ from datetime import timedelta
 from grab import Grab
 
 
-DAYS = 10
+DAYS = 5
 HOST = 'http://lp-reports.vm.mirantis.net'
+#HOST = 'http://lp-reports-staging.vm.mirantis.net'
 VERSION = 'milestone=7.0'
-URL = '{0}/reports/custom_report?{1}&{2}_from={3}&{2}_to={4}{5}'
-COLLECTOR = '//a[starts-with(@href, "#") and string-length(@href) > 3]'
+URL = ('{0}/reports/custom_report?{1}&{2}_from={3}&{2}_to={4}'
+       '&exclude_tags=non-release&exclude_tags=system-tests'
+       '&exclude_tags=devops&exclude_tags=fuel-devops{5}')
+#URL = '{0}/reports/custom_report?{1}&{2}_from={3}&{2}_to={4}{5}'
+#       '&exclude_tags=non-release&exclude_tags=system-tests'
+#       '&exclude_tags=devops&exclude_tags=fuel-devops{5}')
+COLLECTOR = '//a[starts-with(@href, "#") and string-length(@href) > 1]'
 g = Grab()
 
 
 def get_count_of_bugs(HOST, VERSION, OPERATION, DATE_FROM, DATE_TO, PRIORITY):
+
+    print URL.format(HOST, VERSION, OPERATION, DATE_FROM, DATE_TO, PRIORITY)
+
     page = g.go(url=URL.format(HOST, VERSION, OPERATION, DATE_FROM,
                                DATE_TO, PRIORITY),
                 timeout=10)
@@ -25,7 +34,7 @@ def get_count_of_bugs(HOST, VERSION, OPERATION, DATE_FROM, DATE_TO, PRIORITY):
     count_of_bugs = 0
     for i in xrange(1, page.select(COLLECTOR).count()):
         item = page.select(COLLECTOR + '[{0}]'.format(i)).text()
-        count_of_bugs += int(item.split(': ')[1])
+        count_of_bugs += int(item.split(':')[1])
 
     return count_of_bugs
 

@@ -1,31 +1,20 @@
 #!/usr/bin/env python
 #
-#    Copyright 2015 Mirantis, Inc.
+# HOW TO RUN THIS SCRIPT
+# 1. Check code of your team in TestRail
+# 2. Read text of this script carefully
+# 3. If you want to use this script, update it
+#    accordingly to your needs
+# 4. Run:
+#     export TESTRAIL_USER='<your_user>'
+#     export TESTRAIL_PASSWORD='your_password'
+#     export TESTRAIL_MILESTONE='8.0'
+#     export TESTRAIL_TEST_SUITE=""
+#     export RELEASE='Ubuntu 14.04'
 #
-#    Licensed under the Apache License, Version 2.0 (the "License"); you may
-#    not use this file except in compliance with the License. You may obtain
-#    a copy of the License at
-#
-#         http://www.apache.org/licenses/LICENSE-2.0
-#
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-#    License for the specific language governing permissions and limitations
-#    under the License.
 
-import optparse
-import urlparse
-from xml.etree import ElementTree
-
-import report
-from settings import JENKINS
-from settings import logger
 from settings import TestRailSettings
 from testrail_client import TestRailProject
-
-
-LOG = logger
 
 
 # Initialize TestRail project client
@@ -38,10 +27,7 @@ tests_suite = client.get_suite_by_name(TestRailSettings.tests_suite)
 
 cases = client.get_cases(tests_suite["id"])
 for case in cases:
-    print case["custom_qa_team"]
     if case["custom_qa_team"] == "":
-        case["custom_qa_team"] = 4
-    print "updated:", case["id"]
-    client.update_case(case)
-
-
+        case["custom_qa_team"] = 4  # 4 it is "MOS" group
+        print "updated:", case["id"]
+        client.update_case(case)

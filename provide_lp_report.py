@@ -5,9 +5,11 @@ import pytz
 from launchpadlib.launchpad import Launchpad
 
 # we use this list for weekly status reports:
-engineers = ['tnurlygayanov', 'akuznetsova', 'ylobankov', 'vrovachev',
+engineers = ['tnurlygayanov', 'akuznetsova',
              'esikachev', 'vgusev', 'svasheka', 'ogubanov', 'obutenko',
-             'kkuznetsova', 'kromanenko', 'vryzhenkin', 'agalkin']
+             'kkuznetsova', 'kromanenko', 'vryzhenkin', 'agalkin',
+             'apetrov-n', 'gluk12189', 'ababich', 'aminasyan', 'mshalamov',
+             'sturivnyi', 'imenkov', 'oklochkova', 'yyekovenko']
 
 # we use this list for 3 months status reports:
 """

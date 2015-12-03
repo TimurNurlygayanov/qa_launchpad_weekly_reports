@@ -14,8 +14,6 @@ timeout = config['DEFAULT'].get('timeout', 5)
 results_file = config['DEFAULT'].get('results_file', 'results.txt')
 exclude_urls = config['DEFAULT'].get('exclude_urls', '').split('\n')
 
-print exclude_urls
-
 SELECTOR = ("//div[not(contains(@style,'display:none')"
             " or contains(@class,'hidden'))]"
             "/*/a[@href[contains(.,'{0}')]]").format(host)

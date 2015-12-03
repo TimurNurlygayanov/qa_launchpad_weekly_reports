@@ -53,6 +53,11 @@ def get_page_status(page):
     url = page['link']
     if url.startswith('/'):
         url = sys.argv[1] + url
+
+    for bad_url in exclude_urls:
+        if bad_url in url:
+            return False
+
     check = open_page(url)
     if check is not False and "200 OK" not in check.status:
         write_result("{0} {1} parent page: {2}".format(check.status, url,
@@ -75,9 +80,6 @@ while new_childs_count > 0:
         if page['link'] not in CACHE:
             bar.max = len(new) + prev
             bar.next()
-            for url in exclude_urls:
-                if url in page['link']:
-                    continue
             if get_page_status(page):
                 CACHE.append(page['link'])
                 new += get_page_childs(page['link'])

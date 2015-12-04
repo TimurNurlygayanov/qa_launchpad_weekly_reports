@@ -1,11 +1,11 @@
 import configparser
 import re
-import sys
 from grab import Grab
 from progress.bar import Bar
+from multiprocessing import Queue
+from threading import Thread
 
 
-g = Grab()
 config = configparser.ConfigParser()
 config.read('server.conf')
 initial_url = config['DEFAULT'].get('initial_url', 'google.com')
@@ -13,6 +13,7 @@ host = config['DEFAULT'].get('child_urls_should_contain', '')
 timeout = config['DEFAULT'].get('timeout', 5)
 results_file = config['DEFAULT'].get('results_file', 'results.txt')
 exclude_urls = config['DEFAULT'].get('exclude_urls', '').split('\n')
+max_threads_count = int(config['DEFAULT'].get('max_threads_count', 20))
 
 SELECTOR = ("//div[not(contains(@style,'display:none')"
             " or contains(@class,'hidden'))]"
@@ -24,9 +25,9 @@ def write_result(string):
         f.write(string + "\n")
 
 
-def open_page(url):
+def open_page(virtual_browser, url):
     try:
-        page = g.go(url=url)
+        page = virtual_browser.go(url=url)
     except Exception:
         write_result("It takes more {0} seconds to open '{1}'"
                      .format(timeout, url))
@@ -35,8 +36,9 @@ def open_page(url):
 
 
 def get_page_childs(parent_url):
+    virtual_browser = Grab()
     urls = []
-    page = open_page(parent_url)
+    page = open_page(virtual_browser, parent_url)
 
     if page is False:
         return urls
@@ -52,13 +54,14 @@ def get_page_childs(parent_url):
 def get_page_status(page):
     url = page['link']
     if url.startswith('/'):
-        url = sys.argv[1] + url
+        url = host + url
 
     for bad_url in exclude_urls:
         if bad_url in url:
             return False
 
-    check = open_page(url)
+    virtual_browser = Grab()
+    check = open_page(virtual_browser, url)
     if check is not False and "200 OK" not in check.status:
         write_result("{0} {1} parent page: {2}".format(check.status, url,
                                                        page.get('parent')))
@@ -66,25 +69,46 @@ def get_page_status(page):
     return True
 
 
-print("Collecting list of child pages... ")
-childs = get_page_childs(initial_url)
+class Worker(Thread):
+    new = []
 
+    def __init__(self, queue):
+        Thread.__init__(self)
+        self.queue = queue
+
+    def run(self):
+        new = []
+        page = self.queue.get()
+        if get_page_status(page):
+            new = get_page_childs(page['link'])
+        Worker.new.extend(new)
+
+
+childs = get_page_childs(initial_url)
 CACHE = []
 new_childs_count = len(childs)
 bar = Bar('Processing', max=len(childs))
+queue = Queue()
 
 while new_childs_count > 0:
     prev = len(childs)
-    new = []
+    bar.max = len(childs)
+
+    threads_count = (prev - len(CACHE)) / 10
+    if threads_count > max_threads_count:
+        threads_count = max_threads_count
+
+    workers = [Worker(queue) for i in xrange(threads_count)]
+    [w.start() for w in workers]
+
     for page in childs:
         if page['link'] not in CACHE:
-            bar.max = len(new) + prev
+            CACHE.append(page['link'])
+            queue.put(page)
             bar.next()
-            if get_page_status(page):
-                CACHE.append(page['link'])
-                new += get_page_childs(page['link'])
 
-    childs += new
+    [w.join() for w in workers]
+    childs += Worker.new
     new_childs_count = len(childs) - prev
 
 bar.finish()

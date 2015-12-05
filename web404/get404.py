@@ -14,7 +14,7 @@ def open_page(virtual_browser, url):
     try:
         page = virtual_browser.go(url=url)
     except Exception:
-        write_result("It takes more {0} seconds to open '{1}'"
+        write_result("It takes more then {0} seconds to open '{1}'"
                      .format(timeout, url))
         return False
     return page

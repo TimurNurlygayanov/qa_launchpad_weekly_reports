@@ -112,8 +112,6 @@ while new_pages_count > 0:
 
         for w in workers:
             w.join(timeout=1)
-            #if w.is_alive():
-            #    w.join(timeout=1)
             for _ in xrange(results_queue.qsize() - done):
                 bar.next()
                 done += 1
@@ -128,5 +126,5 @@ while new_pages_count > 0:
 bar.finish()
 
 with open("all_tested_links", 'a+') as f:
-    for page in childs:
-        f.write(page['link'] + "\n")
+    for page in CACHE:
+        f.write(page + "\n")

@@ -2,22 +2,7 @@ import configparser
 import re
 from grab import Grab
 from progress.bar import Bar
-from multiprocessing import Queue
-from threading import Thread
-
-
-config = configparser.ConfigParser()
-config.read('server.conf')
-initial_url = config['DEFAULT'].get('initial_url', 'google.com')
-host = config['DEFAULT'].get('child_urls_should_contain', '')
-timeout = config['DEFAULT'].get('timeout', 5)
-results_file = config['DEFAULT'].get('results_file', 'results.txt')
-exclude_urls = config['DEFAULT'].get('exclude_urls', '').split('\n')
-max_threads_count = int(config['DEFAULT'].get('max_threads_count', 20))
-
-SELECTOR = ("//div[not(contains(@style,'display:none')"
-            " or contains(@class,'hidden'))]"
-            "/*/a[@href[contains(.,'{0}')]]").format(host)
+from multiprocessing import Process, Queue
 
 
 def write_result(string):
@@ -69,47 +54,76 @@ def get_page_status(page):
     return True
 
 
-class Worker(Thread):
+def collect_childs(queue, results):
     new = []
-
-    def __init__(self, queue):
-        Thread.__init__(self)
-        self.queue = queue
-
-    def run(self):
-        new = []
-        page = self.queue.get()
+    if not queue.empty():
+        page = queue.get(timeout=1)
         if get_page_status(page):
             new = get_page_childs(page['link'])
-        Worker.new.extend(new)
+        results.put(new, timeout=10)
 
+
+config = configparser.ConfigParser()
+config.read('server.conf')
+initial_url = config['DEFAULT'].get('initial_url', 'google.com')
+host = config['DEFAULT'].get('child_urls_should_contain', '')
+timeout = config['DEFAULT'].get('timeout', 5)
+results_file = config['DEFAULT'].get('results_file', 'results.txt')
+exclude_urls = config['DEFAULT'].get('exclude_urls', '').split('\n')
+max_threads_count = int(config['DEFAULT'].get('max_threads_count', 20))
+max_recursion = int(config['DEFAULT'].get('max_recursion', 3))
+
+SELECTOR = ("//div[not(contains(@style,'display:none')"
+            " or contains(@class,'hidden'))]"
+            "/*/a[@href[contains(.,'{0}')]]").format(host)
 
 childs = get_page_childs(initial_url)
 CACHE = []
-new_childs_count = len(childs)
+new_pages_count = len(childs)
 bar = Bar('Processing', max=len(childs))
-queue = Queue()
+bar.start()
 
-while new_childs_count > 0:
-    prev = len(childs)
-    bar.max = len(childs)
+recursion = 0
 
-    threads_count = (prev - len(CACHE)) / 10
-    if threads_count > max_threads_count:
-        threads_count = max_threads_count
-
-    workers = [Worker(queue) for i in xrange(threads_count)]
-    [w.start() for w in workers]
+while new_pages_count > 0:
+    queue = Queue()
+    results_queue = Queue()
+    new_pages_count = 0
 
     for page in childs:
         if page['link'] not in CACHE:
             CACHE.append(page['link'])
-            queue.put(page)
-            bar.next()
+            queue.put(page, timeout=10)
+            new_pages_count += 1
 
-    [w.join() for w in workers]
-    childs += Worker.new
-    new_childs_count = len(childs) - prev
+    done = 0
+    bar.max = len(CACHE)
+
+    while not queue.empty():
+        threads_count = (new_pages_count - done) / 2
+        if threads_count > max_threads_count:
+            threads_count = max_threads_count
+
+        workers = [Process(target=collect_childs, args=(queue, results_queue))
+                   for i in xrange(threads_count)]
+        for w in workers:
+            w.daemon = True
+        [w.start() for w in workers]
+
+        for w in workers:
+            w.join(timeout=1)
+            #if w.is_alive():
+            #    w.join(timeout=1)
+            for _ in xrange(results_queue.qsize() - done):
+                bar.next()
+                done += 1
+
+    recursion += 1
+    if recursion > max_recursion:
+        break
+
+    while not results_queue.empty():
+        childs += results_queue.get(timeout=1)
 
 bar.finish()
 

@@ -62,7 +62,7 @@ for case in cases:
         need_update = True
 
     if not case["custom_test_case_steps"]:
-        case["custom_test_case_steps"]: [{u'content': u'/', u'expected': u'/'}]
+        case["custom_test_case_steps"] = [{'content': '/', 'expected': '/'}]
         need_update = True
 
     if need_update:

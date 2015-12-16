@@ -1,5 +1,6 @@
 import configparser
 import re
+import time
 from grab import Grab
 from progress.bar import Bar
 from multiprocessing import Process, Queue
@@ -7,7 +8,7 @@ from multiprocessing import Process, Queue
 
 def write_result(string):
     with open(results_file, 'a+') as f:
-        f.write(string + "\n")
+        f.write(string.encode("utf-8", "replace") + "\n")
 
 
 def open_page(virtual_browser, url):
@@ -31,15 +32,16 @@ def get_page_childs(parent_url):
     all_urls = page.select(SELECTOR)
     for url in all_urls:
         link = re.search('href=(\S+)', url.html())
-        urls.append({'link': link.group(0).split('"')[1],
-                     'parent': parent_url})
+        link = link.group(0).split('"')[1]
+        if link.startswith('/'):
+            link = parent_url + link
+
+        urls.append({'link': link, 'parent': parent_url})
     return urls
 
 
 def get_page_status(page):
     url = page['link']
-    if url.startswith('/'):
-        url = host + url
 
     for bad_url in exclude_urls:
         if bad_url in url:
@@ -48,8 +50,10 @@ def get_page_status(page):
     virtual_browser = Grab()
     check = open_page(virtual_browser, url)
     if check is not False and "200 OK" not in check.status:
-        write_result("{0} {1} parent page: {2}".format(check.status, url,
-                                                       page.get('parent')))
+        write_result(unicode("{0} {1} parent page: {2}")
+                     .format(unicode(check.status),
+                             unicode(url),
+                             unicode(page.get('parent'))))
         return False
     return True
 
@@ -66,23 +70,23 @@ def collect_childs(queue, results):
 config = configparser.ConfigParser()
 config.read('server.conf')
 initial_url = config['DEFAULT'].get('initial_url', 'google.com')
-host = config['DEFAULT'].get('child_urls_should_contain', '')
+host = config['DEFAULT'].get('child_urls_should_contain', '707')
 timeout = config['DEFAULT'].get('timeout', 5)
 results_file = config['DEFAULT'].get('results_file', 'results.txt')
-exclude_urls = config['DEFAULT'].get('exclude_urls', '').split('\n')
+exclude_urls = config['DEFAULT'].get('exclude_urls', '707').split('\n')
 max_threads_count = int(config['DEFAULT'].get('max_threads_count', 20))
 max_recursion = int(config['DEFAULT'].get('max_recursion', 3))
 
-SELECTOR = ("//div[not(contains(@style,'display:none')"
+SELECTOR = ("//*[not(contains(@style,'display:none')"
             " or contains(@class,'hidden'))]"
-            "/*/a[@href[contains(.,'{0}')]]").format(host)
+            "/*/a[contains(@href,'{0}')"
+            " or starts-with(@href,'/')]").format(host)
 
 childs = get_page_childs(initial_url)
 CACHE = []
 new_pages_count = len(childs)
 bar = Bar('Processing', max=len(childs))
 bar.start()
-
 recursion = 0
 
 while new_pages_count > 0:
@@ -94,13 +98,15 @@ while new_pages_count > 0:
         if page['link'] not in CACHE:
             CACHE.append(page['link'])
             queue.put(page, timeout=10)
+            time.sleep(0.01)
             new_pages_count += 1
 
     done = 0
     bar.max = len(CACHE)
 
     while not queue.empty():
-        threads_count = (new_pages_count - done) / 2
+        threads_count = 1 + (new_pages_count - done) / 2
+
         if threads_count > max_threads_count:
             threads_count = max_threads_count
 
@@ -111,7 +117,7 @@ while new_pages_count > 0:
         [w.start() for w in workers]
 
         for w in workers:
-            w.join(timeout=1)
+            w.join(timeout=0.1)
             for _ in xrange(results_queue.qsize() - done):
                 bar.next()
                 done += 1
@@ -121,7 +127,7 @@ while new_pages_count > 0:
         break
 
     while not results_queue.empty():
-        childs += results_queue.get(timeout=1)
+        childs += results_queue.get()
 
 bar.finish()
 

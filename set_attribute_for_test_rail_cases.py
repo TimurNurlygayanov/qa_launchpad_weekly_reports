@@ -18,7 +18,7 @@ from testrail_client import TestRailProject
 
 
 milestone = "8.0"
-team = "MOS"
+team = "PCE"
 test_case_type = "manual"
 complexity = "core"
 
@@ -46,7 +46,7 @@ for case in cases:
     need_update = False
 
     if case["custom_qa_team"] != qa_teams[team]:
-        case["custom_qa_team"] = 4
+        case["custom_qa_team"] = qa_teams[team]
         need_update = True
 
     if case["milestone_id"] != milestones[milestone]:
@@ -57,9 +57,13 @@ for case in cases:
         case["type_id"] = types[test_case_type]
         need_update = True
 
-    if case["custom_case_complexity"] != complexity_types[complexity]:
+    if case["custom_case_complexity"] is None:
         case["custom_case_complexity"] = complexity_types[complexity]
         need_update = True
+
+    #if case["custom_case_complexity"] != complexity_types[complexity]:
+    #    case["custom_case_complexity"] = complexity_types[complexity]
+    #    need_update = True
 
     if not case["custom_test_case_steps"]:
         case["custom_test_case_steps"] = [{'content': '/', 'expected': '/'}]

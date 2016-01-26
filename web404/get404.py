@@ -3,12 +3,43 @@ import re
 import time
 from grab import Grab
 from progress.bar import Bar
+from pyvirtualdisplay import Display
+from selenium import webdriver
 from multiprocessing import Process, Queue
+
+
+config = configparser.ConfigParser()
+config.read('server.conf')
+
+
+def get_conf_param(section, parameter, default_value):
+    result = config.get(section, parameter)
+    return result or default_value
 
 
 def write_result(string):
     with open(results_file, 'a+') as f:
         f.write(string.encode("utf-8", "replace") + "\n")
+
+
+def check_with_selenium(parent_url, child_url):
+    display = Display(visible=0, size=(1024, 768))
+    display.start()
+    browser = webdriver.Firefox()
+    browser.get(parent_url)
+
+    result = False # it will mean that users can't see this link
+
+    trace = child_url.split('/')[-2]
+    links = browser.find_elements_by_xpath(SELENIUM_SELECTOR.format(trace))
+    for link in links:
+        if link.is_displayed():
+            result = True
+
+    browser.quit()
+    display.stop()
+
+    return result
 
 
 def open_page(virtual_browser, url):
@@ -34,7 +65,7 @@ def get_page_childs(parent_url):
         link = re.search('href=(\S+)', url.html())
         link = link.group(0).split('"')[1]
         if link.startswith('/'):
-            link = parent_url + link
+            link = initial_url + link
 
         urls.append({'link': link, 'parent': parent_url})
     return urls
@@ -50,11 +81,14 @@ def get_page_status(page):
     virtual_browser = Grab()
     check = open_page(virtual_browser, url)
     if check is not False and "200 OK" not in check.status:
-        write_result(unicode("{0} {1} parent page: {2}")
-                     .format(unicode(check.status),
-                             unicode(url),
-                             unicode(page.get('parent'))))
-        return False
+        is_visible = check_with_selenium(unicode(page.get('parent')),
+                                         unicode(url))
+        if is_visible:
+            write_result(unicode("{0} {1} parent page: {2}")
+                         .format(unicode(check.status),
+                                 unicode(url),
+                                 unicode(page.get('parent'))))
+            return False
     return True
 
 
@@ -67,25 +101,28 @@ def collect_childs(queue, results):
         results.put(new, timeout=10)
 
 
-config = configparser.ConfigParser()
-config.read('server.conf')
-initial_url = config['DEFAULT'].get('initial_url', 'google.com')
-host = config['DEFAULT'].get('child_urls_should_contain', '707')
-timeout = config['DEFAULT'].get('timeout', 5)
-results_file = config['DEFAULT'].get('results_file', 'results.txt')
-exclude_urls = config['DEFAULT'].get('exclude_urls', '707').split('\n')
-max_threads_count = int(config['DEFAULT'].get('max_threads_count', 20))
-max_recursion = int(config['DEFAULT'].get('max_recursion', 3))
+initial_url = get_conf_param('DEFAULT', 'initial_url', 'google.com')
+host = get_conf_param('DEFAULT', 'child_urls_should_contain', '707')
+timeout = get_conf_param('DEFAULT', 'timeout', 5)
+results_file = get_conf_param('DEFAULT', 'results_file', 'results.txt')
+exclude_urls = get_conf_param('DEFAULT', 'exclude_urls', '707').split('\n')
+max_threads_count = int(get_conf_param('DEFAULT', 'max_threads_count', 20))
+max_recursion = int(get_conf_param('DEFAULT', 'max_recursion', 3))
 
 SELECTOR = ("//*[not(contains(@style,'display:none')"
             " or contains(@class,'hidden'))]"
             "/*/a[contains(@href,'{0}')"
             " or starts-with(@href,'/')]").format(host)
 
+SELENIUM_SELECTOR = ("//*[not(contains(@style,'display:none')"
+                     " or contains(@class,'hidden'))]"
+                     "/*/a[contains(@href,'{0}')]")
+
 childs = get_page_childs(initial_url)
 CACHE = []
 new_pages_count = len(childs)
 bar = Bar('Processing', max=len(childs))
+
 bar.start()
 recursion = 0
 
@@ -98,7 +135,10 @@ while new_pages_count > 0:
         if page['link'] not in CACHE:
             CACHE.append(page['link'])
             queue.put(page, timeout=10)
+
+            # woraround for queue.put:
             time.sleep(0.01)
+
             new_pages_count += 1
 
     done = 0
@@ -118,9 +158,10 @@ while new_pages_count > 0:
 
         for w in workers:
             w.join(timeout=0.1)
-            for _ in xrange(results_queue.qsize() - done):
+            qsize = results_queue.qsize()
+            for _ in xrange(qsize - done):
                 bar.next()
-                done += 1
+            done = qsize
 
     recursion += 1
     if recursion > max_recursion:

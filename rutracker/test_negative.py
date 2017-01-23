@@ -66,9 +66,8 @@ def test_get_many_elements(by, endpoint):
     r = requests.get(endpoint, params=search_params)
     data = r.json()
 
-    expected_data = {'error': {'text': ('param [val] is over the limit'
-                                        ' of {0} (you sent {1} values)').
-                                        format(MAX_LIMIT, MAX_LIMIT+1),
+    text = 'param [val] is over the limit of {0} (you sent {1} values)'
+    expected_data = {'error': {'text': text.format(MAX_LIMIT, MAX_LIMIT + 1),
                                'code': 1}}
 
     assert data == expected_data, err_msg

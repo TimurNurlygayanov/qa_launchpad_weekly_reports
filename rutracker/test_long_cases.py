@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # TODO: identify the way to properly filter
-#       forums without attached torrents,        
+#       forums without attached torrents,
 #       because get_forum method returns 404
 #       status code if forum exists but doesn't have
 #       attached torrent files

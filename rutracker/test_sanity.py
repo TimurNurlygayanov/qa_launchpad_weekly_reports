@@ -47,7 +47,7 @@ def test_check_get_forums_tree_cat_count():
     cat_count = len(data['result']['c'])
     cat_tree_count = len(data['result']['tree'])
 
-    assert cat_count == cat_tree_count 
+    assert cat_count == cat_tree_count
 
 
 @pytest.mark.sanity

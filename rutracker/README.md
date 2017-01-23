@@ -23,3 +23,8 @@ To run negative test suite:
 To run long tests:
 
   py.test -v -m 'long'
+
+Note
+====
+Long test skipped because we need to spend more time to properly
+design the test case and method to filter incorrect forums.

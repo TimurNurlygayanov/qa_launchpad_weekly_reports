@@ -185,15 +185,15 @@ def test_get_forum_name_for_many_forums():
 def test_get_forum_data():
     """ Test checks that we can get forum's data by it's id. """
 
-    furum_id = '7'
+    forum_id = '7'
     expected_data = {'forum_name': u'Зарубежное кино',
                      'parent_id': 0}
 
-    search_params = {'by': 'forum_id', 'val': furum_id}
+    search_params = {'by': 'forum_id', 'val': forum_id}
     r = requests.get(ENDPOINTS['get_forum_data'], params=search_params)
     data = r.json()
 
-    assert data['result'][furum_id] == expected_data
+    assert data['result'][forum_id] == expected_data
 
 
 @pytest.mark.sanity

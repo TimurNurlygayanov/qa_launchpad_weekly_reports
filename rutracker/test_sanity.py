@@ -315,7 +315,7 @@ def test_get_tor_hash_for_many_torrents():
     r = requests.get(ENDPOINTS['get_tor_hash'], params=search_params)
     data = r.json()
 
-    # check that we got infomration about all required torrents:
+    # check that we got information about all required torrents:
     missed_torrents = [t for t in data['result'] if t not in torrents_ids]
 
     assert missed_torrents == []

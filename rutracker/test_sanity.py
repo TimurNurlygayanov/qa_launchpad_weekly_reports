@@ -5,6 +5,7 @@ import pytest
 import requests
 
 
+MAX_LIMIT = 100
 HOST = 'http://api.rutracker.org/v1/{0}'
 ENDPOINTS = {
     'test_error_response': HOST.format('dbg/test_error_response'),
@@ -143,7 +144,7 @@ def test_get_limit():
     r = requests.get(ENDPOINTS['get_limit'])
     data = r.json()
 
-    assert data['result']['limit'] == 100
+    assert data['result']['limit'] == MAX_LIMIT
 
 
 @pytest.mark.sanity
@@ -186,10 +187,10 @@ def test_get_forum_name_for_many_forums():
     data = r.json()
     all_forums = data['result']['f']
 
-    # get first 100 elements from the list of forums:
-    forums = {k: all_forums[k] for k in all_forums.keys()[:100]}
+    # get first MAX_LIMIT elements from the list of forums:
+    forums = {k: all_forums[k] for k in all_forums.keys()[:MAX_LIMIT]}
 
-    # get information about selected 100 forums:
+    # get information about selected MAX_LIMIT forums:
     search_params = {'by': 'forum_id', 'val': ','.join(forums.keys())}
     r = requests.get(ENDPOINTS['get_forum_name'], params=search_params)
     data = r.json()
@@ -201,14 +202,15 @@ def test_get_forum_name_for_many_forums():
 def test_get_forum_data():
     """ Test checks that we can get forum's data by it's id. """
 
+    furum_id = '7'
     expected_data = {'forum_name': u'Зарубежное кино',
                      'parent_id': 0}
 
-    search_params = {'by': 'forum_id', 'val': '7'}
+    search_params = {'by': 'forum_id', 'val': furum_id}
     r = requests.get(ENDPOINTS['get_forum_data'], params=search_params)
     data = r.json()
 
-    assert data['result']['7'] == expected_data
+    assert data['result'][furum_id] == expected_data
 
 
 @pytest.mark.sanity
@@ -218,6 +220,7 @@ def test_get_forum_data_for_many_forums():
     r = requests.get(ENDPOINTS['cat_forum_tree'])
     data = r.json()
     data_tree = data['result']['tree']
+
     res = dict()
     ids_list = list()
 
@@ -228,7 +231,7 @@ def test_get_forum_data_for_many_forums():
                 res[str(subforum)] = int(forum)
                 ids_list.append(str(subforum))
 
-    ids_string = ','.join(ids_list[:100])
+    ids_string = ','.join(ids_list[:MAX_LIMIT])
 
     # get info about names of subforums:
     search_params = {'by': 'forum_id', 'val': ids_string}
@@ -241,6 +244,7 @@ def test_get_forum_data_for_many_forums():
         forums_data[str(forum_id)] = {'forum_name': forum_name,
                                       'parent_id': res[str(forum_id)]}
 
+    # get detailed info about MAX_LIMIT forums:
     search_params = {'by': 'forum_id', 'val': ids_string}
     r = requests.get(ENDPOINTS['get_forum_data'], params=search_params)
     data = r.json()
@@ -310,6 +314,31 @@ def test_get_tor_hash():
 
 
 @pytest.mark.sanity
+def test_get_tor_hash_for_many_torrents():
+    """ Test checks that we can get torrents hash by their ids. """
+
+    # user with MAX_LIMIT+ uploaded torrents:
+    user_id = '715325'
+
+    # get list of torrents by user_id:
+    search_params = {'by': 'user_id', 'val': user_id}
+    r = requests.get(ENDPOINTS['get_user_torrents'], params=search_params)
+    data = r.json()
+
+    torrents_ids = map(str, data['result'][user_id][:MAX_LIMIT])
+
+    # get hashes for MAX_LIMIT different torrents:
+    search_params = {'by': 'topic_id', 'val': ','.join(torrents_ids)}
+    r = requests.get(ENDPOINTS['get_tor_hash'], params=search_params)
+    data = r.json()
+
+    # check that we got infomration about all required torrents:
+    missed_torrents = [t for t in data['result'] if t not in torrents_ids]
+
+    assert missed_torrents == []
+
+
+@pytest.mark.sanity
 def test_get_topic_id():
     """ Test checks that we can get topic id by it's hash. """
 
@@ -320,6 +349,36 @@ def test_get_topic_id():
     data = r.json()
 
     assert data['result'] == torrent
+
+
+@pytest.mark.sanity
+def test_get_topic_id_for_many_torrents():
+    """ Test checks that we can get topics ids by their hashes. """
+
+    # user with MAX_LIMIT+ uploaded torrents:
+    user_id = '715325'
+
+    # get list of torrents by user_id:
+    search_params = {'by': 'user_id', 'val': user_id}
+    r = requests.get(ENDPOINTS['get_user_torrents'], params=search_params)
+    data = r.json()
+
+    torrents_ids = map(str, data['result'][user_id][:MAX_LIMIT])
+
+    # get hashes for MAX_LIMIT different torrents:
+    search_params = {'by': 'topic_id', 'val': ','.join(torrents_ids)}
+    r = requests.get(ENDPOINTS['get_tor_hash'], params=search_params)
+    data = r.json()
+
+    # generate data for validation:
+    expected_data = {v: int(k) for k, v in data['result'].iteritems()}
+
+    # get ids for MAX_LIMIT different torrents by their hashes:
+    search_params = {'by': 'hash', 'val': ','.join(expected_data.keys())}
+    r = requests.get(ENDPOINTS['get_topic_id'], params=search_params)
+    data = r.json()
+
+    assert data['result'] == expected_data
 
 
 @pytest.mark.sanity
@@ -350,7 +409,7 @@ def test_get_topic_detailed_info_for_many_torrents():
         topics by their ids.
     """
 
-    # user with 100+ uploaded torrents:
+    # user with MAX_LIMIT+ uploaded torrents:
     user_id = '715325'
 
     # get list of torrents by user_id:
@@ -358,9 +417,9 @@ def test_get_topic_detailed_info_for_many_torrents():
     r = requests.get(ENDPOINTS['get_user_torrents'], params=search_params)
     data = r.json()
 
-    torrents_ids = map(str, data['result'][user_id][:100])
+    torrents_ids = map(str, data['result'][user_id][:MAX_LIMIT])
 
-    # get information about 100 torrents by their ids:
+    # get information about MAX_LIMIT torrents by their ids:
     search_params = {'by': 'topic_id', 'val': ','.join(torrents_ids)}
     r = requests.get(ENDPOINTS['get_tor_topic_data'], params=search_params)
     data = r.json()

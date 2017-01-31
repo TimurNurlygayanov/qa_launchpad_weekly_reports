@@ -14,15 +14,21 @@ How To Run Tests
 
 To run sanity suite execute:
 
+```
   py.test -v -m 'sanity'
+```
 
 To run negative test suite:
 
+```
   py.test -v -m 'negative'
+```
 
 To run long tests:
 
+```
   py.test -v -m 'long'
+```
 
 Note
 ====

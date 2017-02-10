@@ -1,0 +1,34 @@
+<!doctype html>
+{% extends "bootstrap/base.html" %}
+
+{% block head %}
+
+{{ super() }}
+
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+<script type="text/javascript" src="static/js/bootstrap-filestyle.min.js"> </script>
+
+
+{% endblock %}
+
+{% block content %}
+
+<form class="form-vertical" method="POST">
+
+  <div class="form-group">
+
+    <div class="container">
+
+        <div class="row">
+            <div class="col-md-6 col-md-offset-3">
+                <input type="file" name="file" class="filestyle" data-buttonText="Select File">
+            </div>
+        </div>
+
+        <p> <center><input type="submit" value="Upload File" class="btn btn-primary"> </center>
+
+    </div>
+  </div>
+</form>
+
+{% endblock %}

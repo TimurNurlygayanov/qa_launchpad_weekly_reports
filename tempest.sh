@@ -8,8 +8,8 @@ sudo pip install lxml >= 3.4.4
 sudo pip install pyyaml
 sudo pip install launchpadlib
 sudo pip install simplejson
-export TESTRAIL_USER="obutenko@mirantis.com"
-export TESTRAIL_PASSWORD="Ktyjxrf123"
+export TESTRAIL_USER="<>"
+export TESTRAIL_PASSWORD="<>"
 export TESTRAIL_MILESTONE="8.0"
 export TESTRAIL_TEST_SUITE="[8.0][MOSQA] Tempest 8.0"
 export RELEASE="Ubuntu 14.04"
